@@ -1,0 +1,263 @@
+<<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FATEEN POS | Cloud System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; }
+        .tab-active { border-bottom: 3px solid #000; color: #000; font-weight: bold; }
+        .sidebar-link:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm z-50">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-extrabold tracking-tighter text-black">فطين <span class="text-blue-600">POS</span></h1>
+            <div class="h-6 w-px bg-gray-200 mx-2"></div>
+            <nav class="flex gap-6">
+                <button onclick="switchTab('pos')" id="tab-pos" class="pb-1 transition-all tab-active">نقطة البيع</button>
+                <button onclick="switchTab('admin')" id="tab-admin" class="pb-1 transition-all text-gray-500 hover:text-black">لوحة المدير</button>
+            </nav>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">متصل بالسحابة</span>
+            <div class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">M</div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden">
+        
+        <div id="pos-screen" class="h-full flex flex-col md:flex-row">
+            <section class="flex-1 p-6 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">قائمة الأصناف</h2>
+                    <input type="text" placeholder="بحث عن صنف..." class="border rounded-lg px-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="pos-grid">
+                    </div>
+            </section>
+
+            <section class="w-full md:w-96 bg-white border-r shadow-xl flex flex-col">
+                <div class="p-4 border-b">
+                    <h2 class="font-bold flex items-center gap-2 text-lg">
+                        🛒 السلة الحالية
+                        <span id="cart-count" class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">0</span>
+                    </h2>
+                </div>
+                <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div class="text-center text-gray-400 mt-20">السلة فارغة.. ابدأ بإضافة منتجات</div>
+                </div>
+                <div class="p-6 border-t bg-gray-50 space-y-4">
+                    <div class="flex justify-between text-gray-600">
+                        <span>الضريبة (5%)</span>
+                        <span id="tax-amount">0.00 ج.م</span>
+                    </div>
+                    <div class="flex justify-between text-2xl font-black text-black">
+                        <span>الإجمالي</span>
+                        <span id="total-price text-blue-600">0.00 ج.م</span>
+                    </div>
+                    <button onclick="processSale()" class="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all shadow-lg active:scale-95">دفع وطباعة الفاتورة</button>
+                </div>
+            </section>
+        </div>
+
+        <div id="admin-screen" class="h-full hidden overflow-y-auto p-8 bg-gray-50">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold mb-8">إحصائيات المدير</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <p class="text-gray-500 text-sm font-bold uppercase mb-2 tracking-wider">مبيعات اليوم</p>
+                        <h3 class="text-3xl font-black" id="stat-total-sales">0.00 ج.م</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <p class="text-gray-500 text-sm font-bold uppercase mb-2 tracking-wider">عدد الفواتير</p>
+                        <h3 class="text-3xl font-black" id="stat-bill-count">0</h3>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <p class="text-gray-500 text-sm font-bold uppercase mb-2 tracking-wider">الأصناف بالمخزن</p>
+                        <h3 class="text-3xl font-black" id="stat-item-count">6</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <h4 class="font-bold mb-4">آخر العمليات المباشرة</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-sm">
+                                <thead class="bg-gray-50 text-gray-500 uppercase">
+                                    <tr>
+                                        <th class="p-3 rounded-r-lg">الرقم</th>
+                                        <th class="p-3 text-center">الوقت</th>
+                                        <th class="p-3 text-left rounded-l-lg">القيمة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-history">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
+                        <h4 class="font-bold mb-4 self-start">تطور المبيعات</h4>
+                        <canvas id="salesChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // -- APP DATA (Real-time Simulation) --
+        let products = [
+            { id: 1, name: "برنامج برو", price: 1500, color: "bg-blue-600", stock: 10 },
+            { id: 2, name: "ماكينة كاشير", price: 4500, color: "bg-black", stock: 5 },
+            { id: 3, name: "طابعة إيصالات", price: 2200, color: "bg-slate-700", stock: 8 },
+            { id: 4, name: "ورق حراري (كرتونة)", price: 350, color: "bg-indigo-500", stock: 20 },
+            { id: 5, name: "صيانة دورية", price: 500, color: "bg-gray-800", stock: 99 },
+            { id: 6, name: "تفعيل سحابي", price: 1200, color: "bg-blue-900", stock: 100 }
+        ];
+
+        let cart = [];
+        let salesHistory = [];
+        let totalRevenue = 0;
+
+        // -- NAVIGATION --
+        function switchTab(tab) {
+            document.getElementById('pos-screen').classList.toggle('hidden', tab !== 'pos');
+            document.getElementById('admin-screen').classList.toggle('hidden', tab !== 'admin');
+            
+            document.getElementById('tab-pos').className = (tab === 'pos') ? 'pb-1 transition-all tab-active' : 'pb-1 transition-all text-gray-500 hover:text-black';
+            document.getElementById('tab-admin').className = (tab === 'admin') ? 'pb-1 transition-all tab-active' : 'pb-1 transition-all text-gray-500 hover:text-black';
+            
+            if(tab === 'admin') updateAdminDashboard();
+        }
+
+        // -- POS LOGIC --
+        function renderPOS() {
+            const grid = document.getElementById('pos-grid');
+            grid.innerHTML = products.map(p => `
+                <div onclick="addToCart(${p.id})" class="group cursor-pointer">
+                    <div class="${p.color} h-32 rounded-3xl shadow-lg flex flex-col items-center justify-center p-4 transition-all group-active:scale-95 group-hover:shadow-2xl">
+                        <span class="text-white font-bold text-center leading-tight mb-2">${p.name}</span>
+                        <div class="bg-white/20 text-white text-[10px] px-2 py-1 rounded-full font-bold">${p.price} ج.م</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id) {
+            const p = products.find(x => x.id === id);
+            const inCart = cart.find(x => x.id === id);
+            if(inCart) inCart.qty++;
+            else cart.push({...p, qty: 1});
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            const totalEl = document.querySelector('.text-2xl.font-black span:last-child');
+            const taxEl = document.getElementById('tax-amount');
+            const countEl = document.getElementById('cart-count');
+
+            if(cart.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 mt-20">السلة فارغة.. ابدأ بإضافة منتجات</div>`;
+                totalEl.innerText = "0.00 ج.م";
+                taxEl.innerText = "0.00 ج.م";
+                countEl.innerText = "0";
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div>
+                        <h4 class="font-bold text-sm">${item.name}</h4>
+                        <p class="text-[10px] text-gray-500">${item.qty} وحدة × ${item.price} ج.م</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-sm text-blue-600">${item.price * item.qty}</span>
+                        <button onclick="removeFromCart(${item.id})" class="w-6 h-6 bg-red-50 text-red-500 rounded-full text-xs flex items-center justify-center font-bold">×</button>
+                    </div>
+                </div>
+            `).join('');
+
+            let subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            let tax = subtotal * 0.05;
+            let total = subtotal + tax;
+
+            totalEl.innerText = total.toLocaleString() + " ج.م";
+            taxEl.innerText = tax.toLocaleString() + " ج.م";
+            countEl.innerText = cart.reduce((s, i) => s + i.qty, 0);
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(x => x.id !== id);
+            updateCartUI();
+        }
+
+        // -- SALE PROCESSING --
+        function processSale() {
+            if(cart.length === 0) return;
+            
+            let amount = cart.reduce((s, i) => s + (i.price * i.qty), 1.05);
+            let orderId = Math.floor(Math.random() * 9000) + 1000;
+            let time = new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
+
+            salesHistory.unshift({ id: orderId, time: time, amount: amount });
+            totalRevenue += amount;
+
+            alert(`تمت العملية بنجاح! رقم الفاتورة: #${orderId}`);
+            cart = [];
+            updateCartUI();
+        }
+
+        // -- ADMIN DASHBOARD --
+        function updateAdminDashboard() {
+            document.getElementById('stat-total-sales').innerText = totalRevenue.toLocaleString() + " ج.م";
+            document.getElementById('stat-bill-count').innerText = salesHistory.length;
+            
+            const historyBody = document.getElementById('sales-history');
+            if(salesHistory.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-gray-400">لا توجد عمليات مبيعات اليوم</td></tr>`;
+            } else {
+                historyBody.innerHTML = salesHistory.slice(0, 5).map(s => `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50">
+                        <td class="p-3 font-bold text-blue-600">#${s.id}</td>
+                        <td class="p-3 text-center text-gray-500">${s.time}</td>
+                        <td class="p-3 text-left font-black">${s.amount.toLocaleString()} ج.م</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // -- CHARTING --
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['9am', '11am', '1pm', '3pm', '5pm', '7pm', '9pm'],
+                datasets: [{
+                    label: 'المبيعات اللحظية',
+                    data: [12, 19, 3, 5, 2, 3, 10],
+                    borderColor: '#2563eb',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { display: false }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Initialize
+        renderPOS();
+    </script>
+</body>
+</html>
