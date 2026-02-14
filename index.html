@@ -1,1 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تكوين قاعدة البيانات</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f2f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 500px;
+            max-width: 100%;
+            padding: 30px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            font-weight: 500;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+        }
+        .field {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            transition: border-color 0.15s;
+            background-color: #f8f9fa;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus {
+            border-color: #4dabf7;
+            outline: none;
+            background-color: #fff;
+        }
+        input[type="checkbox"] {
+            margin-left: 8px;
+            transform: scale(1.1);
+            vertical-align: middle;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #495057;
+        }
+        .helper-text {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #f1f3f5;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1 1 auto;
+        }
+        button:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+        }
+        button.primary {
+            background-color: #4dabf7;
+            border-color: #4dabf7;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #3b8fd9;
+            border-color: #3b8fd9;
+        }
+        button.success {
+            background-color: #51cf66;
+            border-color: #51cf66;
+            color: white;
+        }
+        button.success:hover {
+            background-color: #3fb258;
+            border-color: #3fb258;
+        }
+        .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 20px 0;
+        }
+        .inline-fields {
+            display: flex;
+            gap: 15px;
+        }
+        .inline-fields .field {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🔧 Configure Database</h2>
 
+        <!-- Database Name -->
+        <div class="field">
+            <label for="dbname">Database Name <span style="color: #fa5252;">*</span></label>
+            <input type="text" id="dbname" value="pos_system" placeholder="مثلاً: pos_system">
+            <div class="helper-text">اسم قاعدة البيانات (بدون مسافات)</div>
+        </div>
+
+        <!-- Use Connection String (Checkbox) -->
+        <div class="field checkbox-label">
+            <input type="checkbox" id="useConnString" checked>
+            <label for="useConnString" style="display: inline; margin: 0;">Use Connection String</label>
+        </div>
+
+        <!-- Connection String -->
+        <div class="field">
+            <label for="connString">Connection String</label>
+            <input type="text" id="connString" value="mysql://root:@localhost:3306/pos_system?ssl=true" placeholder="mysql://user:pass@host:port/db">
+            <div class="helper-text">Full MySQL connection URI. تعديل هذا الحقل سيحدّث الحقول التالية.</div>
+        </div>
+
+        <!-- Host & Port inline -->
+        <div class="inline-fields">
+            <div class="field">
+                <label for="host">Host</label>
+                <input type="text" id="host" value="localhost">
+            </div>
+            <div class="field">
+                <label for="port">Port</label>
+                <input type="number" id="port" value="3306">
+            </div>
+        </div>
+
+        <!-- Database (again) -->
+        <div class="field">
+            <label for="database">Database</label>
+            <input type="text" id="database" value="pos_system">
+        </div>
+
+        <!-- ICommand (الأزرار) -->
+        <div class="divider"></div>
+        <div class="buttons">
+            <button class="primary" onclick="alert('تم إلغاء الإجراء (تجريبي)')">Cancel</button>
+            <button onclick="alert('اختبار الاتصال: محاكاة نجاح الاتصال')">Test Connection</button>
+            <button class="success" onclick="alert('تم إنشاء قاعدة البيانات (محاكاة)')">Create Database</button>
+        </div>
+
+        <div style="margin-top: 15px; font-size: 0.8rem; color: #868e96; text-align: center;">
+            استخدم الإعدادات المبدئية: root بدون كلمة سر (للسيرفر المحلي)
+        </div>
+    </div>
+
+    <!-- Simple JavaScript to sync fields if needed (optional) -->
+    <script>
+        (function() {
+            const connStringField = document.getElementById('connString');
+            const hostField = document.getElementById('host');
+            const portField = document.getElementById('port');
+            const dbField = document.getElementById('database');
+            const dbNameField = document.getElementById('dbname');
+            const useConnString = document.getElementById('useConnString');
+
+            // Simple function to parse connection string (very basic)
+            function updateFromConnString() {
+                if (!useConnString.checked) return;
+                let str = connStringField.value;
+                // مثال: mysql://root:@localhost:3306/pos_system?ssl=true
+                try {
+                    // extract host:port/db
+                    let match = str.match(/@([^:/]+)(?::(\d+))?\/([^?]+)/);
+                    if (match) {
+                        hostField.value = match[1];
+                        if (match[2]) portField.value = match[2];
+                        if (match[3]) {
+                            dbField.value = match[3];
+                            dbNameField.value = match[3];
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // Update connection string when fields change (if checkbox checked)
+            function updateConnStringFromFields() {
+                if (!useConnString.checked) return;
+                let host = hostField.value || 'localhost';
+                let port = portField.value || '3306';
+                let db = dbField.value || 'pos_system';
+                let user = 'root'; // يمكن جعل هذا حقلاً آخر لكن للتبسيط
+                let pass = '';      // فراغ
+                connStringField.value = `mysql://${user}:${pass}@${host}:${port}/${db}?ssl=true`;
+            }
+
+            // Event listeners
+            connStringField.addEventListener('blur', updateFromConnString);
+            hostField.addEventListener('blur', updateConnStringFromFields);
+            portField.addEventListener('blur', updateConnStringFromFields);
+            dbField.addEventListener('blur', updateConnStringFromFields);
+            dbNameField.addEventListener('blur', function() {
+                if (useConnString.checked) {
+                    dbField.value = this.value;
+                    updateConnStringFromFields();
+                }
+            });
+
+            // Disable fields if not using connection string? (اختياري)
+            function toggleFields() {
+                let disabled = !useConnString.checked;
+                // إذا لم نستخدم conn string، نعطل الحقول الأخرى؟ سنتركها قابلة للتعديل لكن يمكن تفعيل المنطق
+                // لكننا نفضل أن تكون الحقول متاحة دائماً.
+            }
+            useConnString.addEventListener('change', function() {
+                if (this.checked) {
+                    // إذا تم التفعيل، قم بتحديث conn string من الحقول
+                    updateConnStringFromFields();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
