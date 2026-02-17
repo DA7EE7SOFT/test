@@ -571,8 +571,7 @@
             let discount = { type: 'fixed', value: 0, amount: 0 };
             let selectedCustomerId = null;
 
-            // عناصر DOM
-            // (سيتم تعيينها لاحقاً)
+            // عناصر DOM (سيتم تعيينها لاحقاً)
 
             // ========== دوال التحميل من Supabase ==========
             async function loadAllFromSupabase() {
@@ -1227,8 +1226,7 @@
                     populateCustomerSelect();
                     renderCustomers();
 
-                    // إغلاق النافذة (Modal) - الآن سنضيف تأكيد
-                    console.log('جاري إغلاق نافذة العميل');
+                    // إغلاق النافذة (Modal)
                     customerModal.classList.add('hidden');
 
                     // تفريغ الحقول
@@ -1239,7 +1237,12 @@
                     alert('تم إضافة العميل بنجاح');
                 });
 
-                cancelCustomerBtn.addEventListener('click', () => customerModal.classList.add('hidden'));
+                // زر إلغاء إضافة عميل
+                if (cancelCustomerBtn) {
+                    cancelCustomerBtn.addEventListener('click', () => {
+                        customerModal.classList.add('hidden');
+                    });
+                }
 
                 // Reset products
                 const resetProductsBtn = document.getElementById('reset-products');
