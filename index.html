@@ -558,7 +558,7 @@
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpYWRmemp6ZGFya3Bxemt0b3JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExOTgxMzksImV4cCI6MjA4Njc3NDEzOX0.q15N66pbT3MLtrh9wQcyJ21FKgdc7ffJOPx7lPPZZN8';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            // ========== متغيرات عامة (مصفوفات محلية للسرعة) ==========
+            // ========== متغيرات عامة ==========
             let categories = [];
             let customers = [];
             let products = [];
@@ -1186,7 +1186,7 @@
 
                 cancelCategoryBtn.addEventListener('click', () => categoryModal.classList.add('hidden'));
 
-                // ========== إضافة عميل - الجزء المعدل ==========
+                // ========== إضافة عميل (معدل للتأكد من إغلاق النافذة) ==========
                 addCustomerBtn.addEventListener('click', () => {
                     customerName.value = '';
                     customerPhone.value = '';
@@ -1210,7 +1210,7 @@
                     const { data, error } = await supabase
                         .from('customers')
                         .insert(newCust)
-                        .select(); // نطلب إرجاع البيانات المدرجة
+                        .select();
 
                     if (error) {
                         alert('خطأ في حفظ العميل: ' + error.message);
@@ -1218,18 +1218,17 @@
                         return;
                     }
 
-                    // إذا تم الإدراج بنجاح، نضيف العميل إلى المصفوفة المحلية
+                    // تأكد من نجاح الإدراج
                     if (data && data.length > 0) {
-                        customers.push(data[0]); // إضافة العميل الجديد
+                        customers.push(data[0]);
                     }
 
-                    // تحديث القائمة المنسدلة في شاشة البيع
+                    // تحديث الواجهات
                     populateCustomerSelect();
-
-                    // تحديث صفحة العملاء
                     renderCustomers();
 
-                    // إغلاق نافذة الإضافة
+                    // إغلاق النافذة (Modal) - الآن سنضيف تأكيد
+                    console.log('جاري إغلاق نافذة العميل');
                     customerModal.classList.add('hidden');
 
                     // تفريغ الحقول
@@ -1237,7 +1236,7 @@
                     customerPhone.value = '';
                     customerEmail.value = '';
 
-                    alert('تم إضافة العميل بنجاح'); // رسالة تأكيد اختيارية
+                    alert('تم إضافة العميل بنجاح');
                 });
 
                 cancelCustomerBtn.addEventListener('click', () => customerModal.classList.add('hidden'));
