@@ -598,7 +598,6 @@
 
             // ========== دوال الحفظ في Supabase ==========
             async function saveCategories() {
-                // upsert: إذا كان id موجوداً يتم التحديث، وإلا يتم الإدراج
                 const { error } = await supabase.from('categories').upsert(categories);
                 if (error) console.error('خطأ في حفظ الأصناف:', error);
             }
@@ -618,12 +617,11 @@
                 if (error) console.error('خطأ في حفظ الفواتير:', error);
             }
 
-            // دالة مساعدة لحفظ كل شيء (تُستدعى بعد أي تغيير)
             async function saveAll() {
                 await Promise.all([saveCategories(), saveCustomers(), saveProducts(), saveInvoices()]);
             }
 
-            // ========== دوال إدارة الواجهة (مشابهة للقديم لكن مع استدعاء saveAll بعد التعديل) ==========
+            // ========== دوال إدارة الواجهة ==========
             function populateCategoryOptions() {
                 const catFilter = document.getElementById('category-filter');
                 const prodCat = document.getElementById('product-category');
@@ -786,7 +784,6 @@
                 const tax = subtotal * 0.14;
                 const total = subtotal + tax - discount.amount;
 
-                // إنشاء الفاتورة في Supabase
                 const { data: invoice, error: invError } = await supabase
                     .from('invoices')
                     .insert({
@@ -804,7 +801,6 @@
 
                 if (invError) { alert('خطأ في حفظ الفاتورة'); console.error(invError); return; }
 
-                // إدراج تفاصيل الفاتورة وتحديث المخزون
                 for (let item of cart) {
                     await supabase
                         .from('invoice_items')
@@ -825,17 +821,13 @@
                         .eq('id', item.id);
                 }
 
-                // إضافة الفاتورة للمصفوفة المحلية
                 invoices.push(invoice);
-
-                // تفريغ السلة
                 cart = [];
                 discount = { type: 'fixed', value: 0, amount: 0 };
                 document.getElementById('discount-value').value = 0;
                 selectedCustomerId = null;
                 document.getElementById('customer-select').value = '';
 
-                // إعادة تحميل البيانات (للتأكد من تحديث المخزون)
                 await loadAllFromSupabase();
                 alert('تم حفظ الفاتورة بنجاح');
             }
@@ -958,7 +950,6 @@
                         if (confirm('حذف الصنف سيؤثر على المنتجات. هل تريد المتابعة؟')) {
                             await supabase.from('categories').delete().eq('id', id);
                             categories = categories.filter(c => c.id !== id);
-                            // تحديث المنتجات المرتبطة
                             for (let p of products) {
                                 if (p.category_id === id) {
                                     p.category_id = null;
@@ -1006,9 +997,9 @@
                 renderCustomers();
             }
 
-            // ========== تهيئة الصفحة وأحداث ==========
+            // ========== أحداث وتهيئة الصفحة ==========
             document.addEventListener('DOMContentLoaded', () => {
-                // تعيين عناصر DOM (كما في الكود القديم)
+                // عناصر DOM
                 const loginModal = document.getElementById('login-modal');
                 const loginBtn = document.getElementById('login-btn');
                 const usernameInput = document.getElementById('username');
@@ -1103,7 +1094,6 @@
                     });
                 });
 
-                // بحث
                 searchBtn.addEventListener('click', () => {
                     renderProducts(searchInput.value.trim(), categoryFilter.value);
                 });
@@ -1111,16 +1101,9 @@
                     if (e.key === 'Enter') renderProducts(searchInput.value.trim(), categoryFilter.value);
                 });
 
-                // خصم
                 applyDiscountBtn.addEventListener('click', applyDiscount);
-
-                // إتمام الفاتورة
                 completeSaleBtn.addEventListener('click', completeSale);
-
-                // طباعة
                 printInvoiceBtn.addEventListener('click', printInvoice);
-
-                // إلغاء
                 cancelSaleBtn.addEventListener('click', () => {
                     if (confirm('إلغاء الفاتورة الحالية؟')) {
                         cart = [];
@@ -1130,7 +1113,6 @@
                     }
                 });
 
-                // طريقة الدفع
                 paymentMethods.forEach(m => {
                     m.addEventListener('click', () => {
                         paymentMethods.forEach(mm => mm.classList.remove('active'));
@@ -1139,12 +1121,10 @@
                     });
                 });
 
-                // اختيار عميل
                 customerSelect.addEventListener('change', (e) => {
                     selectedCustomerId = e.target.value ? parseInt(e.target.value) : null;
                 });
 
-                // تقارير
                 filterReportsBtn.addEventListener('click', () => {
                     renderReports(reportStart.value, reportEnd.value);
                 });
@@ -1206,7 +1186,7 @@
 
                 cancelCategoryBtn.addEventListener('click', () => categoryModal.classList.add('hidden'));
 
-                // إضافة عميل
+                // ========== إضافة عميل - الجزء المعدل ==========
                 addCustomerBtn.addEventListener('click', () => {
                     customerName.value = '';
                     customerPhone.value = '';
@@ -1220,17 +1200,44 @@
                         phone: customerPhone.value,
                         email: customerEmail.value
                     };
-                    if (!newCust.name) return;
-                    const { data, error } = await supabase.from('customers').insert(newCust).select().single();
-                    if (!error) {
-                        customers.push(data);
-                        populateCustomerSelect();
-                        renderCustomers();
-                        customerModal.classList.add('hidden');
-                    } else { 
+
+                    if (!newCust.name) {
+                        alert('الاسم مطلوب');
+                        return;
+                    }
+
+                    // إرسال البيانات إلى Supabase
+                    const { data, error } = await supabase
+                        .from('customers')
+                        .insert(newCust)
+                        .select(); // نطلب إرجاع البيانات المدرجة
+
+                    if (error) {
                         alert('خطأ في حفظ العميل: ' + error.message);
                         console.error(error);
+                        return;
                     }
+
+                    // إذا تم الإدراج بنجاح، نضيف العميل إلى المصفوفة المحلية
+                    if (data && data.length > 0) {
+                        customers.push(data[0]); // إضافة العميل الجديد
+                    }
+
+                    // تحديث القائمة المنسدلة في شاشة البيع
+                    populateCustomerSelect();
+
+                    // تحديث صفحة العملاء
+                    renderCustomers();
+
+                    // إغلاق نافذة الإضافة
+                    customerModal.classList.add('hidden');
+
+                    // تفريغ الحقول
+                    customerName.value = '';
+                    customerPhone.value = '';
+                    customerEmail.value = '';
+
+                    alert('تم إضافة العميل بنجاح'); // رسالة تأكيد اختيارية
                 });
 
                 cancelCustomerBtn.addEventListener('click', () => customerModal.classList.add('hidden'));
@@ -1240,8 +1247,7 @@
                 if (resetProductsBtn) {
                     resetProductsBtn.addEventListener('click', async () => {
                         if (confirm('هل تريد استعادة المنتجات الافتراضية؟')) {
-                            // حذف القديم
-                            await supabase.from('products').delete().neq('id', 0); // حذف الكل
+                            await supabase.from('products').delete().neq('id', 0);
                             const defaultProducts = [
                                 { name: 'بيبسي كولا', barcode: '123456', price: 10.0, tax: 14, stock: 100, category_id: 1 },
                                 { name: 'شيبسي ليز', barcode: '234567', price: 7.5, tax: 14, stock: 50, category_id: 2 },
