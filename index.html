@@ -78,6 +78,7 @@
     .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:var(--radius-sm); border:none; font-family:'Cairo',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
     .btn-primary{background:var(--primary);color:white} .btn-primary:hover{background:var(--primary-light)}
     .btn-danger{background:var(--accent-red);color:white}
+    .btn-success{background:var(--accent-green);color:white}
     .btn-sm{padding:5px 10px;font-size:12px}
     .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
     .btn-outline:hover{border-color:var(--primary);color:var(--primary)}
@@ -186,8 +187,7 @@
     </div>
   </div>
   <div class="topbar-actions">
-    <button class="btn-topbar" onclick="App.refresh()">🔄 تحديث</button>
-    <button class="btn-topbar" onclick="App.showExportPopup()">📤 تصدير</button>
+    <button class="btn-topbar" id="btn-export" onclick="App.showExportPopup()" style="display:none">📤 تصدير</button>
   </div>
 </div>
 
@@ -399,8 +399,15 @@ const OperationsModule=(()=>{
     const d={id:$id('op-id').value,date:$id('op-date').value,vehicle:$id('op-vehicle').value,supplier:$id('op-supplier').value,destination:$id('op-destination').value,revenue:parseFloat($id('op-revenue').value)||0,opExp:parseFloat($id('op-opexp').value)||0,status:$id('op-status').value,notes:$id('op-notes').value};
     if(!d.date||!d.destination){showToast('أدخل التاريخ والوجهة','error');return;}
     if(!d.vehicle){showToast('اختر العربية','error');return;}
-    // لوجيك: تشغيلتين جاريتين لنفس العربية
-    if(d.status==='جارية'){const cf=data.find(op=>op.vehicle===d.vehicle&&op.status==='جارية'&&op.rowIndex!==parseInt(ri));if(cf){showToast(`العربية ${d.vehicle} عندها تشغيلة جارية بالفعل!`,'error');return;}}
+    // لوجيك: نفس العربية مع نفس المورد مينفعش يكون عندهم تشغيلتين جاريتين
+    if(d.status==='جارية'){
+      const cf1=data.find(op=>op.vehicle===d.vehicle&&op.status==='جارية'&&op.rowIndex!==parseInt(ri));
+      if(cf1){showToast(`العربية ${d.vehicle} عندها تشغيلة جارية بالفعل!`,'error');return;}
+      if(d.supplier){
+        const cf2=data.find(op=>op.vehicle===d.vehicle&&op.supplier===d.supplier&&op.status==='جارية'&&op.rowIndex!==parseInt(ri));
+        if(cf2){showToast(`نفس العربية ونفس المورد عندهم تشغيلة جارية!`,'error');return;}
+      }
+    }
     // لوجيك: العربية لازم تكون نشطة
     const vObj=VehiclesModule.getAll().find(v=>v.plate===d.vehicle);
     if(vObj&&vObj.status!=='نشطة'){showToast(`العربية ${d.vehicle} حالتها "${vObj.status}" — غير متاحة`,'error');return;}
@@ -543,6 +550,13 @@ const App=(()=>{
 
   async function navigate(page){
     cur=page;
+    // أوتو-كلوز الـ sidebar
+    sidebarOpen=false;
+    $id('sidebar').classList.add('collapsed');
+    $id('main-content').classList.add('expanded');
+    $id('sidebar-toggle').classList.add('open');
+    // إظهار/إخفاء زرار التصدير
+    $id('btn-export').style.display = page==='home' ? 'none' : 'flex';
     document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
     const nav=$id(`nav-${page}`);if(nav)nav.classList.add('active');
     const main=$id('main-content');
@@ -559,12 +573,6 @@ const App=(()=>{
     main.innerHTML=`
       <div class="home-banner"><div class="date">${ds}</div><h2>👋 أهلاً بك في نظام Oceanus</h2></div>
       <div id="home-stats" class="stats-grid"><div class="loading"><div class="spinner"></div></div></div>
-      <div class="quick-links">
-        <div class="quick-card vehicles" onclick="App.navigate('vehicles')"><div class="q-icon">🚌</div><h3>العربيات</h3><p>إدارة الأسطول</p></div>
-        <div class="quick-card operations" onclick="App.navigate('operations')"><div class="q-icon">🚀</div><h3>التشغيلات</h3><p>الرحلات والإيرادات</p></div>
-        <div class="quick-card expenses" onclick="App.navigate('expenses')"><div class="q-icon">💸</div><h3>المصاريف</h3><p>ثابتة ومتغيرة وأخرى</p></div>
-        <div class="quick-card reports" onclick="App.navigate('reports')"><div class="q-icon">📊</div><h3>التقارير</h3><p>الأرباح والملخصات</p></div>
-      </div>
       <div class="bottom-grid">
         <div class="card"><div class="card-header"><span class="card-title">🟢 التشغيلات الجارية حالياً</span></div><div id="home-active"><div class="loading"><div class="spinner"></div></div></div></div>
         <div class="card"><div class="card-header"><span class="card-title">💸 آخر المصاريف</span><button class="btn btn-sm btn-outline" onclick="App.navigate('expenses')">عرض الكل</button></div><div id="home-lastexp"><div class="loading"><div class="spinner"></div></div></div></div>
@@ -583,7 +591,7 @@ const App=(()=>{
       const aOps=ops.filter(op=>op.status==='جارية');
       $id('home-active').innerHTML=!aOps.length
         ?'<div class="empty-state"><p>لا توجد تشغيلات جارية حالياً</p></div>'
-        :aOps.map(op=>`<div class="active-op-item"><div class="active-op-info"><strong>🚌 ${op.vehicle} ← ${op.destination}</strong><span>${op.supplier||'—'} | ${op.date}</span></div><span class="badge badge-blue">جارية</span></div>`).join('');
+        :aOps.map(op=>`<div class="active-op-item" id="aop-${op.rowIndex}"><div class="active-op-info"><strong>🚌 ${op.vehicle} ← ${op.destination}</strong><span>${op.supplier||'—'} | ${op.date}</span></div><button class="btn btn-sm btn-success" onclick="App.completeOp(${op.rowIndex})">✅ اكتملت</button></div>`).join('');
       const lExp=exps.slice(-5).reverse();
       $id('home-lastexp').innerHTML=!lExp.length
         ?'<div class="empty-state"><p>لا توجد مصاريف بعد</p></div>'
@@ -591,22 +599,53 @@ const App=(()=>{
     }catch(e){$id('home-stats').innerHTML='<div class="empty-state"><p>❌ خطأ في تحميل البيانات</p></div>';}
   }
 
-  function refresh(){showToast('جاري التحديث...');navigate(cur);}
+  function refresh(){navigate(cur);}
   function showExportPopup(){$id('export-popup').classList.add('active');}
   function hideExportPopup(){$id('export-popup').classList.remove('active');}
 
+  async function completeOp(rowIndex){
+    const ops=OperationsModule.getAll();
+    const op=ops.find(o=>o.rowIndex===rowIndex);
+    if(!op)return;
+    try{
+      await SheetsAPI.upd(CONFIG.SHEETS.OPERATIONS,rowIndex,[op.id,op.date,op.vehicle,op.supplier,op.destination,op.revenue,op.opExp,'مكتملة',op.notes]);
+      const el=$id(`aop-${rowIndex}`);
+      if(el){el.style.transition='opacity 0.3s';el.style.opacity='0';setTimeout(()=>{el.remove();const box=$id('home-active');if(box&&!box.querySelector('.active-op-item'))box.innerHTML='<div class="empty-state"><p>لا توجد تشغيلات جارية حالياً</p></div>';},300);}
+      showToast('تم إكمال التشغيلة ✅','success');
+    }catch(e){showToast('حدث خطأ','error');}
+  }
+
   function exportExcel(){
     hideExportPopup();
-    const ops=OperationsModule.getAll(),exps=ExpensesModule.getAll(),vs=VehiclesModule.getAll();
-    let csv='\uFEFF';
-    csv+='العربيات\nالنوع,الماركة,الموديل,رقم اللوحة,الحالة\n';
-    vs.forEach(v=>csv+=`${v.type},${v.brand},${v.model},${v.plate},${v.status}\n`);
-    csv+='\nالتشغيلات\nالتاريخ,العربية,المورد,الوجهة,الإيراد,مصاريف,الحالة\n';
-    ops.forEach(op=>csv+=`${op.date},${op.vehicle},${op.supplier},${op.destination},${op.revenue},${op.opExp},${op.status}\n`);
-    csv+='\nالمصاريف\nالتاريخ,النوع,البند,المبلغ\n';
-    exps.forEach(ex=>csv+=`${ex.date},${ex.type},${ex.item},${ex.amount}\n`);
+    let csv='\uFEFF', filename='oceanus';
+    const date=new Date().toISOString().split('T')[0];
+    if(cur==='vehicles'){
+      const vs=VehiclesModule.getAll();
+      csv+='النوع,الماركة,الموديل,رقم اللوحة,الحالة\n';
+      vs.forEach(v=>csv+=`${v.type},${v.brand},${v.model},${v.plate},${v.status}\n`);
+      filename=`oceanus-vehicles-${date}`;
+    } else if(cur==='operations'){
+      const ops=OperationsModule.getAll();
+      csv+='التاريخ,العربية,المورد,الوجهة,الإيراد,مصاريف,الحالة\n';
+      ops.forEach(op=>csv+=`${op.date},${op.vehicle},${op.supplier},${op.destination},${op.revenue},${op.opExp},${op.status}\n`);
+      filename=`oceanus-operations-${date}`;
+    } else if(cur==='expenses'){
+      const exps=ExpensesModule.getAll();
+      csv+='التاريخ,النوع,البند,المبلغ\n';
+      exps.forEach(ex=>csv+=`${ex.date},${ex.type},${ex.item},${ex.amount}\n`);
+      filename=`oceanus-expenses-${date}`;
+    } else {
+      const ops=OperationsModule.getAll(),exps=ExpensesModule.getAll(),vs=VehiclesModule.getAll();
+      csv+='العربيات\nالنوع,الماركة,الموديل,رقم اللوحة,الحالة\n';
+      vs.forEach(v=>csv+=`${v.type},${v.brand},${v.model},${v.plate},${v.status}\n`);
+      csv+='\nالتشغيلات\nالتاريخ,العربية,المورد,الوجهة,الإيراد,مصاريف,الحالة\n';
+      ops.forEach(op=>csv+=`${op.date},${op.vehicle},${op.supplier},${op.destination},${op.revenue},${op.opExp},${op.status}\n`);
+      csv+='\nالمصاريف\nالتاريخ,النوع,البند,المبلغ\n';
+      exps.forEach(ex=>csv+=`${ex.date},${ex.type},${ex.item},${ex.amount}\n`);
+      filename=`oceanus-all-${date}`;
+    }
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`oceanus-${new Date().toISOString().split('T')[0]}.csv`;a.click();
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${filename}.csv`;a.click();
     showToast('تم التصدير كـ Excel ✅','success');
   }
 
@@ -657,5 +696,6 @@ App.init();
 </script>
 </body>
 </html>
+
 
 
